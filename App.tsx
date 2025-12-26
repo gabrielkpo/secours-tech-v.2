@@ -200,17 +200,21 @@ function App() {
         }];
       });
 
-    } catch (error) {
+    } catch (error: any) {
       // Check if session is still valid
       if (currentSessionId !== sessionIdRef.current) return;
       
       console.error(error);
+      const isQuota = error.message === "QUOTA_EXCEEDED" || error.message?.includes('429');
+      
       setMessages(prev => {
         const cleaned = prev.filter(m => m.role !== 'system');
         return [...cleaned, {
           id: (Date.now() + 1).toString(),
           role: 'model',
-          content: "Erreur système. Veuillez réessayer.",
+          content: isQuota 
+            ? "⚠️ **ALERTE SYSTÈME : Surcharge (Quota API).**\n\nLe nombre maximum de requêtes gratuites est atteint. Veuillez patienter une minute avant de relancer votre demande."
+            : "⚠️ Erreur système. Veuillez réessayer.",
           timestamp: new Date()
         }];
       });

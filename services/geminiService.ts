@@ -120,9 +120,12 @@ export const analyzeQuery = async (
 
     return { intent, doc: foundDoc };
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in routing:", error);
-    // Fallback: If routing fails, we assume general knowledge but we could also fail safe.
+    // Silent failover to general knowledge if routing crashes, unless it's a quota issue
+    if (error.message?.includes('429') || error.message?.includes('quota')) {
+        throw new Error("QUOTA_EXCEEDED");
+    }
     return { intent: 'GENERAL_KNOWLEDGE', doc: null };
   }
 };
@@ -207,33 +210,42 @@ export const answerWithContext = async (
           contents: { parts: contentParts },
           config: {
             systemInstruction: systemInstruction,
-            // Thinking budget removed to improve latency drastically
           }
         });
 
         return response.text;
 
-      } catch (e) {
-        console.error("Error loading PDF", e);
-        return "⚠️ Erreur technique: Impossible de lire le document référencé. Veuillez vérifier qu'il est bien présent sur le serveur.";
+      } catch (e: any) {
+        console.error("Error loading PDF or Generating", e);
+        if (e.message?.includes('429') || e.message?.includes('quota')) {
+            return "⚠️ **ALERTE SYSTÈME : Quota API atteint.**\n\nLe système gratuit est saturé. Veuillez patienter une minute ou contacter l'administrateur pour passer sur une clé API professionnelle (Pay-as-you-go).";
+        }
+        return "⚠️ Erreur technique: Impossible de lire le document référencé ou erreur de génération.";
       }
   }
 
   // For non-doc scenarios
-  const finalContents = [
-    ...historyParts,
-    { role: 'user', parts: [{ text: query }] }
-  ];
+  try {
+    const finalContents = [
+        ...historyParts,
+        { role: 'user', parts: [{ text: query }] }
+    ];
 
-  const modelName = "gemini-3-flash-preview";
+    const modelName = "gemini-3-flash-preview";
 
-  const response = await ai.models.generateContent({
-    model: modelName,
-    contents: finalContents,
-    config: {
-      systemInstruction: systemInstruction,
+    const response = await ai.models.generateContent({
+        model: modelName,
+        contents: finalContents,
+        config: {
+        systemInstruction: systemInstruction,
+        }
+    });
+
+    return response.text;
+  } catch (e: any) {
+    if (e.message?.includes('429') || e.message?.includes('quota')) {
+        return "⚠️ **ALERTE SYSTÈME : Quota API atteint.**\n\nLe système gratuit est saturé. Veuillez patienter une minute.";
     }
-  });
-
-  return response.text;
+    return "⚠️ Erreur de communication avec le serveur central (API Error).";
+  }
 };
