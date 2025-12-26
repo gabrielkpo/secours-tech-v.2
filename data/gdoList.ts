@@ -56,9 +56,9 @@ export const PRELOADED_DOCUMENTS: TechDocument[] = [
   {
     id: 'risk-01',
     name: 'GDO Présence de Gaz',
-    filename: 'GDO-Interventions-Presence-De-Gaz.pdf',
+    filename: 'GDO-Interventions-Presence-De-Gaz_compressed_compressed.pdf',
     category: 'NRBC',
-    path: 'documents/GDO-Interventions-Presence-De-Gaz.pdf'
+    path: 'documents/GDO-Interventions-Presence-De-Gaz_compressed_compressed.pdf'
   },
   {
     id: 'risk-02',
