@@ -1,8 +1,9 @@
 # 🚒 SecoursTech - Assistant Opérationnel Sapeurs-Pompiers
+> Un assistant intelligent basé sur l'IA pour aider les Sapeurs-Pompiers dans leurs missions quotidiennes en s'appuyant sur les référentiels officiels (GDO, GNR, SSUAP).
+
 
 <img width="1439" height="770" alt="Capture d’écran 2025-12-26 à 22 19 58" src="https://github.com/user-attachments/assets/1560b374-0745-4ee2-ab60-1017a480f1dc" />
 
-> Un assistant intelligent basé sur l'IA pour aider les Sapeurs-Pompiers dans leurs missions quotidiennes en s'appuyant sur les référentiels officiels (GDO, GNR, SSUAP).
 
 ![React](https://img.shields.io/badge/React-19-blue)
 ![Vite](https://img.shields.io/badge/Vite-6-purple)
