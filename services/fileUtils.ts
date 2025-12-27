@@ -4,8 +4,20 @@
  */
 export const urlToBase64 = async (url: string): Promise<string> => {
   try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Failed to fetch document: ${url}`);
+    // Construct a full URL to avoid relative path issues in production
+    // If 'url' starts with '/', it will be relative to the domain root.
+    const fullUrl = new URL(url, window.location.origin).toString();
+    console.log(`Attempting to fetch document from: ${fullUrl}`);
+
+    const response = await fetch(fullUrl);
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(`Document not found (404): ${url}. Please check filename case sensitivity.`);
+      }
+      throw new Error(`Failed to fetch document: ${url} (Status: ${response.status})`);
+    }
+
     const blob = await response.blob();
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
