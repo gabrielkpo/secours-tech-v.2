@@ -4,37 +4,51 @@
  */
 export const urlToBase64 = async (url: string): Promise<string> => {
   try {
-    // Construct a full URL to avoid relative path issues in production
-    // If 'url' starts with '/', it will be relative to the domain root.
-    const fullUrl = new URL(url, window.location.origin).toString();
-    console.log(`Attempting to fetch document from: ${fullUrl}`);
-
-    const response = await fetch(fullUrl);
+    // 1. Normalisation : Assurer que le chemin commence par un '/'
+    const safePath = url.startsWith('/') ? url : `/${url}`;
     
+    // 2. Utilisation directe du chemin relatif.
+    // encodeURI est important pour gérer les espaces dans les noms de fichiers
+    // On n'utilise PLUS window.location.origin pour éviter les problèmes de "Mixed Content" ou de ports en dev
+    const requestPath = encodeURI(safePath);
+    
+    console.debug(`[FileUtils] Chargement relatif : ${requestPath}`);
+
+    const response = await fetch(requestPath);
+    
+    // 3. Gestion fine des erreurs HTTP
     if (!response.ok) {
       if (response.status === 404) {
-        throw new Error(`Document not found (404): ${url}. Please check filename case sensitivity.`);
+        console.error(`[FileUtils] ❌ ERREUR 404 : Fichier introuvable sur le serveur.`);
+        throw new Error(`Document introuvable (404). Vérifiez que le fichier existe bien dans le dossier public : ${safePath}`);
       }
-      throw new Error(`Failed to fetch document: ${url} (Status: ${response.status})`);
+      throw new Error(`Erreur HTTP ${response.status} lors du chargement de ${safePath}`);
     }
 
     const blob = await response.blob();
+    
+    // 4. Conversion Blob -> Base64
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         if (typeof reader.result === 'string') {
-           // Remove "data:application/pdf;base64," prefix
+           // On retire l'en-tête "data:application/pdf;base64," pour ne garder que la data pure
            const base64 = reader.result.split(',')[1];
            resolve(base64);
         } else {
-           reject(new Error('Failed to convert blob to base64'));
+           reject(new Error('Échec de la conversion du fichier en Base64.'));
         }
       };
-      reader.onerror = reject;
+      reader.onerror = () => reject(new Error('Erreur de lecture du fichier (FileReader).'));
       reader.readAsDataURL(blob);
     });
-  } catch (error) {
-    console.error("Error loading document:", error);
+  } catch (error: any) {
+    // Si c'est une erreur réseau pure (Failed to fetch)
+    if (error.message === 'Failed to fetch') {
+        console.error("[FileUtils] ❌ ERREUR RÉSEAU : Impossible d'accéder au fichier.");
+        console.error("Causes possibles : Chemin incorrect, bloqueur de publicité, ou restrictions navigateur.");
+    }
+    console.error("[FileUtils] Exception :", error);
     throw error;
   }
 };
